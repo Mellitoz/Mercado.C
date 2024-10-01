@@ -1,0 +1,253 @@
+#include <stdio.h>
+#include <string.h>
+
+#define LIM_PRODUTOS 50
+#define LIM_CARRINHO 50
+
+typedef struct {
+    int codigo;
+    char nome[50];
+    float preco;
+} Produto;
+
+typedef struct {
+    Produto produto;
+    int qntd;
+} Carrinho;
+
+Produto produtos[LIM_PRODUTOS];
+Carrinho carrinho[LIM_CARRINHO];
+int numP = 0;
+int numC = 0;
+
+void Mello();
+void cadastro();
+void lista();
+void comprar();
+void verCarrinho();
+void pagar();
+void remocao();
+int prodsCarrinho(int codigo);
+Produto* pegarProdCod(int codigo);
+void infos(Produto p);
+
+int main() {
+    Mello();
+    return 0;
+}
+
+void Mello() {
+    int op;
+
+    do {
+       puts("--- Ola Weldes ---");
+        puts("--- Seja Bem Vindo ao Mello's Market ---");
+        puts("--- Oq Voce deseja para hoje? ---");
+        puts("1. Cadastrar um Produto");
+        puts("2. Listar os Produtos Cadastrados");
+        puts("3. Adicionar itens ao Carrinho");
+        puts("4. Visualizar seu Carrinho");
+        puts("5. Remover Produto do seu Carrinho");
+        puts("6. Fechar seu Pedido");
+        puts("7. Sair do Mercado");
+        puts("Escolha uma opcao: ");
+        scanf("%d", &op);
+
+        switch (op) {
+            case 1: 
+                cadastro(); 
+                break;
+            case 2: 
+                lista(); 
+                break;
+            case 3: 
+                comprar(); 
+                break;
+            case 4: 
+                verCarrinho(); 
+                break;
+            case 5: 
+                remocao(); 
+                break;
+            case 6: 
+                pagar(); 
+                break;
+            case 7: 
+                puts("Obrigado por comprar na Mello's Market! Volte Sempre, Weldes"); 
+                break;
+            default: 
+                puts("Opcao invalida!");
+        }
+    } while (op != 7);
+}
+
+void cadastro() {
+    if (numP >= LIM_PRODUTOS) {
+        printf("Você já chegou no limite de cadastros.\n");
+        return;
+    }
+
+    if (numP > 0) {
+        lista();
+    } else {
+        printf("Nenhum produto cadastrado, cadastre um Agora:.\n");
+    }
+
+    Produto novoP;
+    printf("Qual o codigo do produto: ");
+    scanf("%d", &novoP.codigo);
+    printf("Digite o nome do produto: ");
+    scanf(" %[^\n]%*c", novoP.nome); 
+    printf("Digite o valor do produto: ");
+    scanf("%f", &novoP.preco);
+
+    produtos[numP] = novoP;
+    numP++;
+    printf("O Produto foi cadastrado com sucesso!\n");
+}
+
+void lista() {
+    if (numP == 0) {
+        printf("Weldes, voce ainda nao cadastrou nenhum produto\n");
+        return;
+    }
+
+    printf("\n--- Lista de Produtos ---\n");
+    for (int i = 0; i < numP; i++) {
+        infos(produtos[i]);
+    }
+}
+
+void infos(Produto p) {
+    printf("Codigo: %d, Nome: %s, Preco: $%.2f\n", p.codigo, p.nome, p.preco);
+    puts("---------------------------------------------------------------");
+}
+
+void comprar() {
+    if (numP == 0) {
+        puts("Voce nao cadastrou nenhum produto entao nao ha como comprar.");
+        return;
+    }
+
+    lista();
+
+    int codigo, qntd;
+    printf("Digite o codigo do produto que deseja adicionar ao carrinho: ");
+    scanf("%d", &codigo);
+
+    Produto* p = pegarProdCod(codigo);
+    if (p == NULL) {
+        puts("Código Invalido.");
+        return;
+    }
+
+    puts("Digite a quantidade que voce deseja comprar: ");
+    scanf("%d", &qntd);
+
+    int indiceC = prodsCarrinho(codigo);
+    if (indiceC != -1) {
+        carrinho[indiceC].qntd += qntd;
+    } else {
+        if (numC >= LIM_CARRINHO) {
+            printf("Carrinho cheio.\n");
+            return;
+        }
+        carrinho[numC].produto = *p;
+        carrinho[numC].qntd = qntd;
+        numC++;
+    }
+
+    puts("Produto foi adicionado ao carrinho.");
+}
+
+void verCarrinho() {
+    if (numC == 0) {
+        puts("Weldes, seu carrinho está vazio.");
+        return;
+    }
+
+    printf("\n----- Carrinho -----\n");
+    for (int i = 0; i < numC; i++) {
+        printf("Codigo: %d, Nome: %s, Quantidade: %d, Preco do item: $%.2f, Subtotal: $%.2f\n",
+               carrinho[i].produto.codigo, carrinho[i].produto.nome, carrinho[i].qntd,
+               carrinho[i].produto.preco, carrinho[i].produto.preco * carrinho[i].qntd);
+    }
+}
+
+void pagar() {
+    if (numC == 0) {
+        printf("O carrinho está vazio.\n");
+        return;
+    }
+
+    float total = 0.0;
+
+    printf("\n----- Caixa -----\n");
+    for (int i = 0; i < numC; i++) {
+        float subtotal = carrinho[i].produto.preco * carrinho[i].qntd;
+        printf("Codigo: %d, Nome: %s, Quantidade: %d, Preco do item: $%.2f, Subtotal: $%.2f\n",
+               carrinho[i].produto.codigo, carrinho[i].produto.nome, carrinho[i].qntd,
+               carrinho[i].produto.preco, subtotal);
+        total += subtotal;
+    }
+
+    printf("Valor Total da compra: $%.2f\n", total);
+    numC = 0;
+    printf("Weldes, seu Pedido foi fechado com sucesso!\n");
+}
+
+void remocao() {
+    if (numC == 0) {
+        printf("O carrinho já está vazio.\n");
+        return;
+    }
+
+    verCarrinho();
+
+    int codigo, qntd;
+    printf("Digite o codigo do produto no qual voce deseja remover do carrinho: ");
+    scanf("%d", &codigo);
+
+    int indice = prodsCarrinho(codigo);
+    if (indice == -1) {
+        printf("Produto nao encontrado no carrinho.\n");
+        return;
+    }
+
+    printf("Digite a quantidade que voce deseja remover: ");
+    scanf("%d", &qntd);
+
+    if (qntd > carrinho[indice].qntd) {
+        printf("Quantidade invalida! Voce so pode remover o numero de itens que voce adicionou que é de: %d unidade(s).\n", carrinho[indice].qntd);
+        return;
+    }
+
+    carrinho[indice].qntd -= qntd;
+
+    if (carrinho[indice].qntd == 0) {
+        for (int i = indice; i < numC - 1; i++) {
+            carrinho[i] = carrinho[i + 1];
+        }
+        numC--;
+    }
+
+    puts("Produto removido do carrinho.");
+}
+
+int prodsCarrinho(int codigo) {
+    for (int i = 0; i < numC; i++) {
+        if (carrinho[i].produto.codigo == codigo) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+Produto* pegarProdCod(int codigo) {
+    for (int i = 0; i < numP; i++) {
+        if (produtos[i].codigo == codigo) {
+            return &produtos[i];
+        }
+    }
+    return NULL;
+}
